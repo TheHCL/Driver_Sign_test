@@ -1,0 +1,737 @@
+<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform"
+                xmlns:msxsl="urn:schemas-microsoft-com:xslt"
+                xmlns:user="http://mycompany.com/mynamespace"
+                version="1.0">
+
+    <xsl:key name="UniqueMachineKey" match="RTI" use="@Machine" />
+
+    <xsl:template name="BuildClientScripts">
+         <!-- Client side script to toggle the display of sections in output -->
+         <script language="jscript">
+            <![CDATA[
+            function ToggleVisibility( button )
+            {
+                var divName;
+                var buttonValue;
+                buttonValue = button.value;
+                divName = button.name;
+                divName = divName.replace( "button", "div" );
+                if ( document.getElementById( divName ).style.display == "none" )
+                {
+                    document.getElementById( divName ).style.display = "block";
+                    document.getElementById( button.name ).value = buttonValue.replace( "+", "-" );
+                    document.getElementById( button.name ).title = "Click to collapse and hide details";
+                }
+                else
+                {
+                    document.getElementById( divName ).style.display = "none";
+                    document.getElementById( button.name ).value = buttonValue.replace( "-", "+" );
+                    document.getElementById( button.name ).title = "Click to expand and see details";
+                }
+            }
+            // ]]>
+         </script>
+    </xsl:template>
+
+    <xsl:template name="BuildReportHeader">
+     <xsl:param name="ReportName" />
+                <!--===== Header table =====-->
+                <table width="100%">
+                 <tr>
+                  <th class="ReportTitle">
+                   Test Log Report - <xsl:value-of select="$ReportName" />
+                  </th>
+                 </tr>
+                </table>
+                <br></br>
+                <!--===== end of Header table =====-->
+
+                <!--===== Summary info table =====-->                
+                <table border="0" width="100%">
+                 <tr>
+                  <th class="SectionTitle" width="100%" colspan="8">Report Summary</th>
+                 </tr>
+                </table>
+    </xsl:template>
+
+    <xsl:template name="BuildReportDetailsHeader">
+     <xsl:param name="ReportDescription" />
+                <table border="0" width="100%">
+                 <tr>
+                  <th class="SectionTitle" width="100%">Report Details</th>
+                 </tr>
+                </table>
+
+                <table border="0" width="100%">
+                 <tr>
+                  <th class="SectionHeading" width="100%"><xsl:value-of select="$ReportDescription" /></th>
+                 </tr>
+                </table>
+    </xsl:template>
+
+    <xsl:template name="BuildStatisticsInfoSection">
+                <!--===== Statistics info table =====-->
+                <xsl:variable name="HasPFRollup" select="boolean(PFRollup)" />
+                <xsl:variable name="Passed">
+                 <xsl:choose>
+                  <xsl:when test="$HasPFRollup = 'true'"><xsl:value-of select="sum(//PFRollup/@Passed)" /></xsl:when>
+                  <xsl:otherwise><xsl:value-of select="count(//EndTest[substring(@Result,1,4)='Pass'])" /></xsl:otherwise>
+                 </xsl:choose>
+                </xsl:variable>
+                <xsl:variable name="Failed">
+                 <xsl:choose>
+                  <xsl:when test="$HasPFRollup = 'true'"><xsl:value-of select="sum(//PFRollup/@Failed)" /></xsl:when>
+                  <xsl:otherwise><xsl:value-of select="count(//EndTest[substring(@Result,1,4)='Fail'])" /></xsl:otherwise>
+                 </xsl:choose>
+                </xsl:variable>
+                <xsl:variable name="Warned">
+                 <xsl:choose>
+                  <xsl:when test="$HasPFRollup = 'true'"><xsl:value-of select="sum(//PFRollup/@Warned)" /></xsl:when>
+                  <xsl:otherwise><xsl:value-of select="count(//EndTest[substring(@Result,1,4)='Warn'])" /></xsl:otherwise>
+                 </xsl:choose>
+                </xsl:variable>
+                <xsl:variable name="Blocked">
+                 <xsl:choose>
+                  <xsl:when test="$HasPFRollup = 'true'"><xsl:value-of select="sum(//PFRollup/@Blocked)" /></xsl:when>
+                  <xsl:otherwise><xsl:value-of select="count(//EndTest[substring(@Result,1,4)='Bloc'])" /></xsl:otherwise>
+                 </xsl:choose>
+                </xsl:variable>
+                <xsl:variable name="Skipped">
+                 <xsl:choose>
+                  <xsl:when test="$HasPFRollup = 'true'"><xsl:value-of select="sum(//PFRollup/@Skipped)" /></xsl:when>
+                  <xsl:otherwise><xsl:value-of select="count(//EndTest[substring(@Result,1,4)='Skip'])" /></xsl:otherwise>
+                 </xsl:choose>
+                </xsl:variable>
+
+                <table border="0" width="100%">
+                 <tr>
+                  <th class="SectionHeading" width="100%" colspan="9">Test Results</th>
+                 </tr>
+                 <tr>
+                  <td class="SectionHeader" width="30%" colspan="2">Description</td>
+                  <td class="SectionHeader" width="10%">Total</td>
+                  <td class="SectionHeader" width="10%">Pass</td>
+                  <td class="SectionHeader" width="10%">Fail</td>
+                  <td class="SectionHeader" width="10%">Warning</td>
+                  <td class="SectionHeader" width="10%">Blocked</td>
+                  <td class="SectionHeader" width="10%">Skipped</td>
+                  <td class="SectionHeader" width="10%">Pass Rate</td>
+                 </tr>
+                 <tr>
+                  <td class="SectionData" colspan="2">
+                   <xsl:choose>
+                    <xsl:when test="$HasPFRollup = 'true'">
+                     <INPUT>
+                      <xsl:attribute name="value"  > + Sum of all PFRollups</xsl:attribute>
+                      <xsl:attribute name="title"  >Click to expand and show details</xsl:attribute>
+                      <xsl:attribute name="onclick">ToggleVisibility(this)</xsl:attribute>
+                      <xsl:attribute name="type"   >button</xsl:attribute>
+                      <xsl:attribute name="name"   >buttonRollup</xsl:attribute>
+                     </INPUT>
+                    </xsl:when>
+                    <xsl:otherwise>Direct count of EndTest results</xsl:otherwise>
+                   </xsl:choose>
+                  </td>
+                  <td class="SectionData"><xsl:value-of select="$Passed + $Failed + $Warned + $Blocked + $Skipped"/></td>
+                  <td class="SectionData"><xsl:value-of select="$Passed"/></td>
+                  <td class="SectionData"><xsl:value-of select="$Failed"/></td>
+                  <td class="SectionData"><xsl:value-of select="$Warned"/></td>
+                  <td class="SectionData"><xsl:value-of select="$Blocked"/></td>
+                  <td class="SectionData"><xsl:value-of select="$Skipped"/></td>
+                  <td class="SectionData">
+                   <xsl:choose>
+                    <xsl:when test="($Passed+$Failed)=0">0%</xsl:when>
+                    <xsl:otherwise><xsl:value-of select="user:CalculatePercentage($Passed,$Passed + $Failed,2)" />%</xsl:otherwise>
+                   </xsl:choose>
+                  </td>
+                 </tr>
+                 <tr>
+                  <td width="5%"></td>
+                  <td width="95%" colspan="10">
+                   <xsl:element name="DIV">
+                    <xsl:attribute name="ID"   >divRollup</xsl:attribute>
+                    <xsl:attribute name="style">DISPLAY: NONE</xsl:attribute>
+                    <table border="0" width="100%">
+                     <tr>
+                      <td class="SectionHeader" width="25%">TimeStamp</td>
+                      <td class="SectionHeader" width="10%">Total</td>
+                      <td class="SectionHeader" width="10%">Pass</td>
+                      <td class="SectionHeader" width="10%">Fail</td>
+                      <td class="SectionHeader" width="10%">Warning</td>
+                      <td class="SectionHeader" width="10%">Blocked</td>
+                      <td class="SectionHeader" width="10%">Skipped</td>
+                      <td class="SectionHeader" width="10%">Pass Rate</td>
+                     </tr>
+                     <xsl:for-each select="//PFRollup">
+                      <xsl:variable name="RTI" select="rti/@id" />
+                      <xsl:variable name="BaseTime" select="preceding-sibling::RTI[@ID=$RTI]/@BaseTime" />
+                      <xsl:variable name="Frequency" select="preceding-sibling::RTI[@ID=$RTI]/@Frequency" />
+                      <xsl:variable name="TimeStamp" select="user:GetCurrentTimeFromTicks(@CA, $BaseTime, $Frequency)" />
+
+                      <tr>
+                       <td class="SectionData"><xsl:value-of select="$TimeStamp" /></td>
+                       <td class="SectionData"><xsl:value-of select="@Passed + @Failed + @Warned + @Blocked + @Skipped" /></td>
+                       <td class="SectionData"><xsl:value-of select="@Passed" /></td>
+                       <td class="SectionData"><xsl:value-of select="@Failed" /></td>
+                       <td class="SectionData"><xsl:value-of select="@Warned" /></td>
+                       <td class="SectionData"><xsl:value-of select="@Blocked" /></td>
+                       <td class="SectionData"><xsl:value-of select="@Skipped" /></td>
+                       <td class="SectionData">
+                        <xsl:choose>
+                         <xsl:when test="(@Passed+@Failed)=0">0%</xsl:when>
+                         <xsl:otherwise><xsl:value-of select="user:CalculatePercentage(@Passed,@Passed + @Failed,2)" />%</xsl:otherwise>
+                        </xsl:choose>
+                       </td>
+                      </tr>
+                     </xsl:for-each>
+                    </table>
+                   </xsl:element>
+                  </td>
+                 </tr>
+                </table>
+                <!--===== end of Statistics info table =====-->
+    </xsl:template>
+
+    <xsl:template name="BuildRuntimeInfoSection">
+                <!--===== RunTime info table =====-->
+                <table border="0" width="100%">
+                 <tr>
+                  <th class="SectionHeading" width="100%" colspan="11">Machine, Process, and OS Information</th>
+                 </tr>
+                 <tr>
+                  <td class="SectionHeader" width="10%" colspan="2">Machine Name</td>
+                  <td class="SectionHeader" width="15%">OS</td>
+                  <td class="SectionHeader" width="5%">Version</td>
+                  <td class="SectionHeader" width="10%">Build</td>
+                  <td class="SectionHeader" width="10%">BuildLab</td>
+                  <td class="SectionHeader" width="10%">BuildDate</td>
+                  <td class="SectionHeader" width="5%">Platform</td>
+                  <td class="SectionHeader" width="15%">Language</td>
+                  <td class="SectionHeader" width="10%">ServicePack</td>
+                  <td class="SectionHeader" width="10%">Config</td>
+                 </tr>
+
+                 <xsl:for-each select="//RTI[generate-id()=generate-id(key('UniqueMachineKey',@Machine)[1])]">
+                  <xsl:sort select="@Machine" data-type="text" order="ascending" />
+                  <xsl:variable name="rti" select="@ID" />
+                  <xsl:variable name="machine" select="@Machine" />
+                  <xsl:variable name="Position" select="concat(position(),@Machine,$rti)" />
+                  <tr>
+                   <td class="MsgData" width="10%" colspan="2">
+                    <INPUT>
+                     <xsl:attribute name="value"  > + <xsl:value-of select="$machine" /></xsl:attribute>
+                     <xsl:attribute name="title"  >Click to expand and show details</xsl:attribute>
+                     <xsl:attribute name="onclick">ToggleVisibility(this)</xsl:attribute>
+                     <xsl:attribute name="type"   >button</xsl:attribute>
+                     <xsl:attribute name="name"   ><xsl:value-of select="concat('button',$Position)"/></xsl:attribute>
+                    </INPUT>
+                   </td>
+                   <xsl:for-each select="following-sibling::Machine[rti/@id=$rti][1]">
+                    <td class="SectionData"><xsl:value-of select="@OS" /></td>
+                    <td class="SectionData"><xsl:value-of select="@Version" /></td>
+                    <td class="SectionData"><xsl:value-of select="@Build" /></td>
+                    <td class="SectionData"><xsl:value-of select="@BuildLab" /></td>
+                    <td class="SectionData"><xsl:value-of select="@BuildDate" /></td>
+                    <td class="SectionData"><xsl:value-of select="@Platform" /></td>
+                    <td class="SectionData"><xsl:value-of select="@Language" /></td>
+                    <td class="SectionData"><xsl:value-of select="@ServicePack" /></td>
+                    <td class="SectionData"><xsl:value-of select="@Config" /></td>
+                   </xsl:for-each>
+                   <xsl:if test="not(//Machine)">
+                    <td class="MsgData" colspan="9"><small>(No Machine Information Trace Available)</small></td>
+                   </xsl:if>
+                  </tr>
+                  <tr>
+                   <td width="5%"></td>
+                   <td width="95%" colspan="10">
+                    <xsl:element name="DIV">
+                     <xsl:attribute name="ID"   ><xsl:value-of select="concat('div',$Position)"/></xsl:attribute>
+                     <xsl:attribute name="style">DISPLAY: NONE</xsl:attribute>
+                     <table border="0" width="100%">
+                      <tr>
+                       <td class="SectionHeader" width="16%">Base Time</td>
+                       <td class="SectionHeader" width="8%">Process ID</td>
+                       <td class="SectionHeader" width="8%">Thread ID</td>
+                       <td class="SectionHeader" width="58%">Process Name</td>
+                      </tr>
+                      <xsl:for-each select="//RTI[@Machine=$machine]">
+                       <xsl:sort select="@BaseTime" data-type="text" order="ascending" />
+                       <xsl:sort select="@ProcessName" data-type="text" order="ascending" />
+                       <tr class="SectionData">
+                        <td class="SectionData" width="16%"><xsl:value-of select="user:GetCurrentTimeFromString(@BaseTime)" /></td>
+                        <td class="SectionData" width="8%"><xsl:value-of select="@ProcessID"/></td>
+                        <td class="SectionData" width="8%"><xsl:value-of select="@ThreadID"/></td>
+                        <td class="SectionDataLeft" width="58%"><xsl:value-of select="@ProcessName"/></td>
+                       </tr>
+                      </xsl:for-each>
+                     </table>
+                    </xsl:element>
+                   </td>
+                  </tr>
+                 </xsl:for-each>
+                </table>
+                <!--===== end of Run Time info table =====-->
+    </xsl:template>
+
+    <xsl:template match="*">
+         <xsl:variable name="RTI" select="rti/@id" />
+         <xsl:variable name="CTX" select="ctx/@id" />
+         <xsl:variable name="BaseTime" select="preceding-sibling::RTI[@ID=$RTI]/@BaseTime" />
+         <xsl:variable name="Frequency" select="preceding-sibling::RTI[@ID=$RTI]/@Frequency" />
+         
+         <xsl:variable name="LogType">
+          <xsl:choose>
+           <xsl:when test="@BaseLvl"><xsl:value-of select="@BaseLvl" /></xsl:when>
+           <xsl:when test="@UserText='Custom Object'">Custom</xsl:when>
+           <xsl:when test="name(.) = 'Error' and @filtered">
+              <xsl:text>Filtered</xsl:text>
+           </xsl:when>
+           <xsl:otherwise><xsl:value-of select="name(.)" /></xsl:otherwise>
+          </xsl:choose>
+         </xsl:variable>
+         <xsl:variable name="BaseLogName">
+          <xsl:choose>
+           <xsl:when test="$LogType='Assert'"        >Assertion</xsl:when>
+           <xsl:when test="$LogType='Break'"         >Break</xsl:when>
+           <xsl:when test="$LogType='Bug'"           >Bug</xsl:when>
+           <xsl:when test="$LogType='CTX'"           >Context</xsl:when>
+           <xsl:when test="$LogType='EndTest'"       >End Test</xsl:when>
+           <xsl:when test="$LogType='Error'"         >Error</xsl:when>
+           <xsl:when test="$LogType='InvalidParam'"  >InvalidParam</xsl:when>
+           <xsl:when test="$LogType='Machine'"       >Computer</xsl:when>
+           <xsl:when test="$LogType='Msg'"           >Message</xsl:when>
+           <xsl:when test="$LogType='PFRollup'"      >Pass/Fail Result Rollup Counts</xsl:when>
+           <xsl:when test="$LogType='RTI'"           >Runtime</xsl:when>
+           <xsl:when test="$LogType='TCM'"           >Test Case Manager Information</xsl:when>
+           <xsl:when test="$LogType='StartTest'"     >Start Test</xsl:when>
+           <xsl:when test="$LogType='Warn'"          >Warning</xsl:when>
+           <xsl:when test="$LogType='Filtered'"      >Filtered Errata</xsl:when>
+           <xsl:otherwise><xsl:value-of select="$LogType" /></xsl:otherwise>
+          </xsl:choose>
+         </xsl:variable>
+         <xsl:variable name="LogName">
+          <xsl:choose>
+           <xsl:when test="@BaseLvl"><xsl:value-of select="name(.)" /></xsl:when>
+           <xsl:otherwise><xsl:value-of select="$BaseLogName" /></xsl:otherwise>
+          </xsl:choose>
+         </xsl:variable>
+
+        <table border="0" width="100%">
+          <tr>
+           <th class="{$LogType}Flag"     width="10%" colspan="1"><xsl:value-of select="$LogName" /></th>
+           <td class="{$LogType}Instance" width="15%">
+            <xsl:choose>
+             <xsl:when test="@LA"><xsl:value-of select="user:GetCurrentTimeFromTicks(@CA, $BaseTime, $Frequency)" /></xsl:when>
+             <xsl:when test="@BaseTime"><xsl:value-of select="user:GetCurrentTimeFromString(@BaseTime)" /></xsl:when>
+             <xsl:otherwise><font class="{$LogType}InstanceInvisible">_</font></xsl:otherwise>
+            </xsl:choose>
+           </td>
+           <td class="{$LogType}InstanceData" width="75%" colspan="2">
+            <xsl:choose>
+             <xsl:when test="@Title"><xsl:value-of select="@Title"/></xsl:when>
+             <xsl:when test="Data[child::text() or child::*]">
+              <xsl:choose>
+               <xsl:when test="user:ContainsCrLf(@UserText)"><pre><xsl:value-of select="@UserText" /></pre></xsl:when>
+               <xsl:otherwise><xsl:value-of select="user:Trim(@UserText)" /></xsl:otherwise>
+              </xsl:choose>
+              <xsl:choose>
+               <xsl:when test="user:ContainsCrLf(Data/text())"><pre><xsl:value-of select="Data/text()" /></pre></xsl:when>
+               <xsl:otherwise><xsl:value-of select="user:Trim(Data/text())" /></xsl:otherwise>
+              </xsl:choose>
+              <xsl:if test="Data/descendant::*">
+               <!--
+                    Compute the max number of descendant elements by applying a template of elements 
+                    which are sorted by count of descendants descending and taking the first one we find.
+               -->
+               <xsl:variable name="MaxChildCount">
+                <xsl:apply-templates select="descendant::*" mode="CountChildren">
+                 <xsl:sort select="count(descendant::*)" data-type="number" order="descending" />
+                </xsl:apply-templates> 
+               </xsl:variable>
+               
+               <!--
+                    Use previously generated child count to determine how many columns we need to display the hierarchical data.
+                    We need 3 columns for header data, plus 1 column for each child.
+               -->
+               <xsl:variable name="MaxColumns">
+                <xsl:choose>
+                 <xsl:when test="something"><xsl:value-of select="$MaxChildCount + 5" /></xsl:when>
+                 <xsl:otherwise><xsl:value-of select="$MaxChildCount + 4" /></xsl:otherwise>
+                </xsl:choose>
+               </xsl:variable>
+               
+               <table width="100%" border="0">
+                <xsl:for-each select="Data/descendant::*">
+                 <xsl:choose>
+                  <xsl:when test="@* or not(string-length(./text()) = 0)">
+                   <tr>
+                    <xsl:for-each select="ancestor::*[ancestor-or-self::Data]">
+                     <td class="{$LogType}Data" width="1%"></td>
+                    </xsl:for-each>
+                    <th class="{$LogType}Data" colspan="{$MaxColumns - (count(ancestor::*[ancestor-or-self::Data]) + 1)}"><xsl:value-of select="local-name()" /></th>
+                    <xsl:for-each select="@*">
+                     <td class="{$LogType}Data"><b><xsl:value-of select="local-name(.)" /></b>=<xsl:value-of select="." /></td>
+                    </xsl:for-each>
+                    <td class="{$LogType}Data" colspan="1" width="100%">
+                     <xsl:choose>
+                      <xsl:when test="user:ContainsCrLf(./text())"><pre><xsl:value-of select="./text()" /></pre></xsl:when>
+                      <xsl:otherwise><xsl:value-of select="user:Trim(./text())" /></xsl:otherwise>
+                     </xsl:choose>
+                    </td>
+                   </tr>                 
+                  </xsl:when>
+                  <xsl:when test="child::*[not(local-name()='null')]">
+                   <tr>
+                    <xsl:for-each select="ancestor::*[ancestor-or-self::Data]">
+                     <td class="{$LogType}Data" width="2%"></td>
+                    </xsl:for-each>
+                    <th class="{$LogType}Data" colspan="{$MaxColumns - count(ancestor::*[ancestor-or-self::Data])}"><xsl:value-of select="local-name()" /></th>
+                   </tr>
+                  </xsl:when>
+                 </xsl:choose>
+                </xsl:for-each>
+               </table>
+              </xsl:if>
+             </xsl:when>
+             <xsl:when test="@UserText">
+              <xsl:choose>
+               <xsl:when test="user:ContainsCrLf(@UserText)"><pre><xsl:value-of select="@UserText" /></pre></xsl:when>
+               <xsl:otherwise><xsl:value-of select="user:Trim(@UserText)" /></xsl:otherwise>
+              </xsl:choose>
+             </xsl:when>
+             <xsl:when test="@TUID"><xsl:value-of select="concat(' (TUID:',@TUID,')')" /></xsl:when>
+             <xsl:otherwise><font class="{$LogType}InstanceInvisible">_</font></xsl:otherwise>
+            </xsl:choose>
+           </td>
+          </tr>
+          <xsl:choose>
+           <xsl:when test="$LogType='TCM'">
+            <xsl:for-each select="@*">
+             <xsl:if test="local-name() != 'CA' and local-name() != 'LA'">
+              <tr>
+               <td class="{$LogType}Header" width="10%" colspan="1"><xsl:value-of select="concat(local-name(), ': ')" /></td>
+               <td class="{$LogType}Data"   width="15%" colspan="1"></td>
+               <td class="{$LogType}Data"   width="75%" colspan="2"><xsl:value-of select="." /></td>
+              </tr>
+             </xsl:if>
+            </xsl:for-each>
+           </xsl:when>
+           <xsl:when test="$LogType='PFRollup'">
+            <xsl:for-each select="@*">
+             <xsl:if test="local-name() != 'CA' and local-name() != 'LA'">
+              <tr>
+               <td class="{$LogType}Header" width="10%" colspan="1"><xsl:value-of select="concat(local-name(), ': ')" /></td>
+               <td class="{$LogType}Data"   width="15%" colspan="1"></td>
+               <td class="{$LogType}Data"   width="75%" colspan="2"><xsl:value-of select="." /></td>
+              </tr>
+             </xsl:if>
+            </xsl:for-each>
+           </xsl:when>
+           <xsl:when test="$LogType='Machine'">
+            <tr>
+             <td class="{$LogType}Header" width="10%" colspan="1">OS: </td>
+             <td class="{$LogType}Data"   width="15%" colspan="1"></td>
+             <td class="{$LogType}Data"   width="75%" colspan="2"><xsl:value-of select="@OS" /></td>
+            </tr>
+            <tr>
+             <td class="{$LogType}Header" width="10%" colspan="1">Version: </td>
+             <td class="{$LogType}Data"   width="15%" colspan="1"></td>
+             <td class="{$LogType}Data"   width="75%" colspan="2"><xsl:value-of select="concat(@Version,'.',@Build,' ',@Platform,' ',@ServicePack)" /></td>
+            </tr>
+            <tr>
+             <td class="{$LogType}Header" width="10%" colspan="1">Language: </td>
+             <td class="{$LogType}Data"   width="15%" colspan="1"></td>
+             <td class="{$LogType}Data"   width="75%" colspan="2"><xsl:value-of select="@Language" /></td>
+            </tr>
+            <tr>
+             <td class="{$LogType}Header" width="10%" colspan="1">Build String: </td>
+             <td class="{$LogType}Data"   width="15%" colspan="1"></td>
+             <td class="{$LogType}Data"   width="75%" colspan="2"><xsl:value-of select="concat(@BuildLab,'-',@BuildDate)" /></td>
+            </tr>
+            <tr>
+             <td class="{$LogType}Header" width="10%" colspan="1">Configuration: </td>
+             <td class="{$LogType}Data"   width="15%" colspan="1"></td>
+             <td class="{$LogType}Data"   width="75%" colspan="2"><xsl:value-of select="@Config" /></td>
+            </tr>
+           </xsl:when>
+           <xsl:when test="$LogType='Bug'">
+            <tr>
+             <td class="{$LogType}Header" width="10%" colspan="1">Bug ID: </td>
+             <td class="{$LogType}Data"   width="15%" colspan="1"></td>
+             <td class="{$LogType}Data"   width="75%" colspan="2"><xsl:value-of select="@ID" /></td>
+            </tr>
+            <tr>
+             <td class="{$LogType}Header" width="10%" colspan="1">Bug Database: </td>
+             <td class="{$LogType}Data"   width="15%" colspan="1"></td>
+             <td class="{$LogType}Data"   width="75%" colspan="2"><xsl:value-of select="@DB" /></td>
+            </tr>
+            <tr>
+             <td class="{$LogType}Header" width="10%" colspan="1">Bug Type: </td>
+             <td class="{$LogType}Data"   width="15%" colspan="1"></td>
+             <td class="{$LogType}Data"   width="75%" colspan="2"><xsl:value-of select="@Type" /></td>
+            </tr>
+           </xsl:when>
+           <xsl:when test="$LogType='EndTest'">
+            <xsl:variable name="ResultClass" select="concat($LogType,'Data',substring(@Result,1,4))" />
+            <tr>
+             <td class="{$LogType}Header" width="10%" colspan="1">Result: </td>
+             <td class="{$LogType}Data"   width="15%" colspan="1"></td>
+             <td class="{$ResultClass}"   width="75%" colspan="2"><xsl:value-of select="@Result" /></td>
+            </tr>
+            <xsl:if test="string-length(@Repro) &gt; 0">
+             <tr>
+              <td class="{$LogType}Header" width="10%" colspan="1">Repro: </td>
+              <td class="{$LogType}Data"   width="15%" colspan="1"></td>
+              <td class="{$ResultClass}"   width="75%" colspan="2">
+               <xsl:choose>
+                <xsl:when test="user:ContainsCrLf(@Repro)"><pre><xsl:value-of select="@Repro" /></pre></xsl:when>
+                <xsl:otherwise><xsl:value-of select="user:Trim(@Repro)" /></xsl:otherwise>
+               </xsl:choose>
+              </td>
+             </tr>
+            </xsl:if>
+           </xsl:when>
+           <xsl:when test="$LogType='RTI'">
+            <tr>
+             <td class="{$LogType}Header" width="10%" colspan="1">Runtime Index: </td>
+             <td class="{$LogType}Data"   width="15%" colspan="1"></td>
+             <td class="{$LogType}Data"   width="75%" colspan="2"><xsl:value-of select="@ID" /></td>
+            </tr>
+            <tr>
+             <td class="{$LogType}Header" width="10%" colspan="1">Machine: </td>
+             <td class="{$LogType}Data"   width="15%" colspan="1"></td>
+             <td class="{$LogType}Data"   width="75%" colspan="2"><xsl:value-of select="@Machine" /></td>
+            </tr>
+            <tr>
+             <td class="{$LogType}Header" width="10%" colspan="1">Process Name: </td>
+             <td class="{$LogType}Data"   width="15%" colspan="1"></td>
+             <td class="{$LogType}Data"   width="75%" colspan="2"><xsl:value-of select="@ProcessName" /></td>
+            </tr>
+            <tr>
+             <td class="{$LogType}Header" width="10%" colspan="1">Process ID: </td>
+             <td class="{$LogType}Data"   width="15%" colspan="1"></td>
+             <td class="{$LogType}Data"   width="75%" colspan="2"><xsl:value-of select="@ProcessID" /></td>
+            </tr>
+            <tr>
+             <td class="{$LogType}Header" width="10%" colspan="1">Thread ID: </td>
+             <td class="{$LogType}Data"   width="15%" colspan="1"></td>
+             <td class="{$LogType}Data"   width="75%" colspan="2"><xsl:value-of select="@ThreadID" /></td>
+            </tr>
+           </xsl:when>
+           <xsl:when test="$LogType='CTX'">
+            <tr>
+             <td class="{$LogType}Header" width="10%" colspan="1">Context Index: </td>
+             <td class="{$LogType}Data"   width="15%" colspan="1"></td>
+             <td class="{$LogType}Data"   width="75%" colspan="2"><xsl:value-of select="@ID" /></td>
+            </tr>
+            <tr>
+             <td class="{$LogType}Header" width="10%" colspan="1">Current: </td>
+             <td class="{$LogType}Data"   width="15%" colspan="1"></td>
+             <td class="{$LogType}Data"   width="75%" colspan="2"><xsl:value-of select="@Current" /></td>
+            </tr>
+            <tr>
+             <td class="{$LogType}Header" width="10%" colspan="1">Parent: </td>
+             <td class="{$LogType}Data"   width="15%" colspan="1"></td>
+             <td class="{$LogType}Data"   width="75%" colspan="2"><xsl:value-of select="@Parent" /></td>
+            </tr>
+           </xsl:when>
+           <xsl:when test="not($LogType='RTI' or $LogType='CTX')">
+            <xsl:if test="@File">
+             <tr>
+              <td class="{$LogType}Header" width="10%">File: </td>
+              <td class="{$LogType}Data"   width="15%" colspan="1"></td>
+              <td class="{$LogType}Data"   width="65%"><xsl:value-of select="@File"/></td>
+              <td class="{$LogType}Data"   width="10%">Line: <xsl:value-of select="@Line"/></td>
+             </tr>
+            </xsl:if>
+            <xsl:if test="@ErrType">
+             <tr>
+              <td class="{$LogType}Header" width="10%" colspan="1">Error Type: </td>
+              <td class="{$LogType}Data"   width="15%" colspan="1"></td>
+              <td class="{$LogType}Data"   width="75%" colspan="2"><xsl:value-of select="@ErrType"/></td>
+             </tr>
+            </xsl:if>
+            <xsl:if test="@ErrCode">
+             <tr>
+              <td class="{$LogType}Header" width="10%" colspan="1">Error Code: </td>
+              <td class="{$LogType}Data"   width="15%" colspan="1"></td>
+              <td class="{$LogType}Data"   width="75%" colspan="2"><xsl:value-of select="@ErrCode"/></td>
+             </tr>
+            </xsl:if>
+            <xsl:if test="@ErrorText">
+             <tr>
+              <td class="{$LogType}Header" width="10%" colspan="1">Error Text: </td>
+              <td class="{$LogType}Data"   width="15%" colspan="1"></td>
+              <td class="{$LogType}Data"   width="75%" colspan="2">
+               <xsl:choose>
+                <xsl:when test="user:ContainsCrLf(@ErrorText)"><pre><xsl:value-of select="@ErrorText" /></pre></xsl:when>
+                <xsl:otherwise><xsl:value-of select="user:Trim(@ErrorText)" /></xsl:otherwise>
+               </xsl:choose>
+              </td>
+             </tr>
+            </xsl:if>
+            <xsl:if test="@Data">
+             <xsl:if test="string-length(normalize-space(@Data)) &gt; 1">
+              <tr>
+               <td class="{$LogType}Header"        width="10%" colspan="1">Data: </td>
+               <td class="{$LogType}Data"          width="15%" colspan="1"></td>
+               <td class="{$LogType}DataForceWrap" width="75%" colspan="2">
+                <xsl:choose>
+                 <xsl:when test="user:ContainsCrLf(@Data)"><pre><xsl:value-of select="@Data" /></pre></xsl:when>
+                 <xsl:otherwise><xsl:value-of select="user:Trim(@Data)" /></xsl:otherwise>
+                </xsl:choose>
+               </td>
+              </tr>
+             </xsl:if>
+            </xsl:if>
+           </xsl:when>
+          </xsl:choose>
+          <xsl:for-each select="./Data/AssessmentScore">
+            <tr>
+              <th class="AssessmentScoreFlag" width="10%" colspan="1">Assessment Score</th>
+              <th class="AssessmentScoreFlag" width="18%" colspan="1"></th>
+              <th class="AssessmentScoreFlag" width="72%" colspan="2"></th>
+            </tr>
+            <tr>
+              <td class="AssessmentScoreHeader" width="10%" colspan="1">Name: </td>
+              <td class="AssessmentScoreData"   width="18%" colspan="1"></td>
+              <td class="AssessmentScoreData"   width="72%" colspan="2">
+                <xsl:value-of select="@ScoreName" />
+              </td>
+            </tr>
+            <tr>
+              <td class="AssessmentScoreHeader" width="10%" colspan="1">Unit: </td>
+              <td class="AssessmentScoreData"   width="18%" colspan="1"></td>
+              <td class="AssessmentScoreData"   width="72%" colspan="2">
+                <xsl:value-of select="@ScoreUnit" />
+              </td>
+            </tr>
+            <tr>
+              <td class="AssessmentScoreHeader" width="10%" colspan="1">Value: </td>
+              <td class="AssessmentScoreData"   width="18%" colspan="1"></td>
+              <td class="AssessmentScoreData"   width="72%" colspan="2">
+                <xsl:value-of select="@ScoreValue" />
+              </td>
+            </tr>
+          </xsl:for-each>
+        </table>
+    </xsl:template>
+
+    <!--
+         This is the special template that counts the child elements, since we sort the list 
+         descending we check for first position and output that data only, which has same effect as 
+         a MAX() function.
+    -->
+    <xsl:template match="*" mode="CountChildren">
+     <xsl:if test="position()=1">
+      <xsl:value-of select="count(descendant::*)" />
+     </xsl:if>
+    </xsl:template>
+
+    <!-- Shared Xslt Extension Scripts -->
+    <msxsl:script language="C#" implements-prefix="user">
+        <![CDATA[
+        public TimeSpan GetTimeSpan( long ticks )
+        {
+            if ( ticks < 0 )
+            {
+                return TimeSpan.Zero;
+            }
+            return ( new TimeSpan( ticks ) );
+        }
+
+        public string GetCurrentTimeFromTicks( string elapsedTicksString, string baseTimeString, string frequencyString )
+        {
+            if ( elapsedTicksString == "" || frequencyString == "" || baseTimeString == "" || baseTimeString == "0:0:0 0:0:0:0" )
+            {
+                return "";
+            }
+
+            DateTime baseDateTime = GetDateTime( baseTimeString );
+            double elapsedTicks = double.Parse( elapsedTicksString );
+            double ticksPerSecond = double.Parse( frequencyString );
+            double elapsedSeconds = elapsedTicks / ticksPerSecond;
+            TimeSpan elapsedTimeSpan = TimeSpan.FromSeconds( elapsedSeconds );
+            DateTime actualDateTime = baseDateTime.Add( elapsedTimeSpan ).ToLocalTime();
+            return ( actualDateTime.ToString( "M/d/yyyy h:mm:ss.fff tt" ) );
+        }
+
+        public string GetCurrentTimeFromString( string timeString )
+        {
+            if ( timeString == "" || timeString == "0:0:0 0:0:0:0" )
+            {
+                return "";
+            }
+
+            DateTime currentTime = GetDateTime( timeString ).ToLocalTime();
+            return ( currentTime.ToString( "M/d/yyyy h:mm:ss.fff tt" ) );
+        }
+
+        public DateTime GetDateTime( string dateString )
+        {
+            if ( dateString == "" || dateString == "0:0:0 0:0:0:0" )
+            {
+                return DateTime.Now;
+            }
+
+            // Fix up logger strings which have a space or T inbetween date and time so they use a colon to facilitate a split operation.
+            dateString = dateString.Trim().Replace( " ", ":" );
+            dateString = dateString.Trim().Replace( "T", ":" );
+
+            // Now we can split the string and build a DateTime object.
+            string[] dateStrings = dateString.Split( ':' );
+
+            DateTime parsedDateTime = new DateTime(
+                int.Parse( dateStrings[ 0 ] ),
+                int.Parse( dateStrings[ 1 ] ),
+                int.Parse( dateStrings[ 2 ] ),
+                int.Parse( dateStrings[ 3 ] ),
+                int.Parse( dateStrings[ 4 ] ),
+                int.Parse( dateStrings[ 5 ] ),
+                int.Parse( dateStrings[ 6 ] )
+            );
+
+            return ( parsedDateTime );
+        }
+
+        public string CalculatePercentage( string valueString1, string valueString2, int decimalPlaces )
+        {
+            if ( valueString1 == "" ) valueString1 = "0";
+            if ( valueString2 == "" ) valueString2 = "0";
+
+            float value1 = float.Parse( valueString1 );
+            float value2 = float.Parse( valueString2 );
+
+            System.Globalization.NumberFormatInfo nfi = new System.Globalization.CultureInfo( "en-US", false ).NumberFormat;
+            nfi.NumberDecimalDigits = decimalPlaces;
+
+            float outputValue = ( ( value1 / value2 ) * 100 );
+            return outputValue.ToString( "N", nfi );
+        }
+
+        public string replace( string inputStr, string searchStr, string replaceStr )
+        {
+            if ( inputStr == "" || searchStr == "" )
+            {
+                return "";
+            }
+            else
+            {
+                return inputStr.Replace( searchStr, replaceStr );
+            }
+        }
+
+        public string Trim( string inputStr )
+        {
+            return inputStr.Trim();
+        }
+
+        public bool ContainsCrLf( string inputStr )
+        {
+            inputStr = inputStr.Trim();
+            return inputStr.Contains("\n") || inputStr.Contains("\r");
+        }
+
+        // ]]>
+    </msxsl:script>
+</xsl:stylesheet>
